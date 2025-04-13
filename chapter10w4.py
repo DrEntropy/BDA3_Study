@@ -23,7 +23,7 @@
 # 
 # * This suggests one could reweight prior samples by the likelihood to get estimates of say the mean or variance of the posterior.   The exercise has one do this using the Bioassay example.  However i thik for the example they find a very small effective sample size, which makes sense because most of the weights will be very small. 
 # 
-# * THis is a form of ABC called ABC-IS (ABC with importance sampling).   Importance weights are also used with SMC-ABC
+# * THis is similar to related to the importance weights used for example in SMC samplers.
 # 
 # 
 # 
