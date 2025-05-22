@@ -181,3 +181,6 @@ cython_debug/
 .pypirc
 .Rproj.user
 *.Rproj
+.RData
+.Rhistory
+
