@@ -45,6 +45,14 @@
 # 
 
 # %% [markdown]
+# Ans:
+# 
+# The expected order statistic can by computed from the inverse of the CDF of the normal distribution but not sure if this is the right approach here. One idea is to compute the posterior predictive distribution for each of the (sorted) 8 values (order statistic) and compare to the actual values
+
+# %% [markdown]
+# 
+
+# %% [markdown]
 # 
 
 
