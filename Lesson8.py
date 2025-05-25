@@ -47,10 +47,12 @@
 # %% [markdown]
 # Ans:
 # 
-# The expected order statistic can by computed from the inverse of the CDF of the normal distribution but not sure if this is the right approach here. One idea is to compute the posterior predictive distribution for each of the (sorted) 8 values (order statistic) and compare to the actual values
+# a)
+# One idea is to simulate 8 draws from normal distribution with mean 8 and standard deviation 13 (which is the model used on pag 120) and sort the draws. Then compare the distribution of the sorted draws to the observed data. If the observed data in any case is outside the some prescribed interval of the simulated data, then we can might have reason to reject the model.    But can we do better? Can we use our draws and see how many are as 'extreme' as the observed set of data?  I think we can. 
+#  
 
 # %% [markdown]
-# 
+# b)  Even though the model fits under this test it is still unacceptable because... 
 
 # %% [markdown]
 # 
