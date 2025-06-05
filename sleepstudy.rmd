@@ -89,16 +89,185 @@ modelf <- bf(Reaction ~ Days +  ( 1 + Days | Subject),family = "gaussian", cente
 
 fit2 <- brms::brm(modelf,
                   prior = priorsRS,
-                   data = sleepstudy)
+                   data = sleepstudy, save_pars = save_pars(all = TRUE))
 ```
 
 For random slopes version , the estimated slope on Days was 10.42 +-1.72 .
 Subject specific effect sd on days was 6.6
 
-## Compare
+## Compare (Assignment 8, part 3)
+
+- Look first at random intercepts posterior checks
+
+```{r}
+pp_check(fit)
+```
+
+Not terrible, not great :)
+
+```{r}
+pp_check(fit, type = "intervals_grouped", x = "Days", group = "Subject")
+```
+Doesn't appear that constant slope is 'great' here.
+
+Lets look at varying slopes:
+```{r}
+pp_check(fit2)
+```
+Maybe slightly better??
+```{r}
+pp_check(fit2, type = "intervals_grouped", x = "Days", group = "Subject")
+```
+
+Varying slopes do look better here. Lets compare loo:
 
 ```{r}
 fit <- add_criterion(fit,"loo")
-fit2 <- add_criterion(fit2, "loo", moment_match = TRUE)
+fit2 <- add_criterion(fit2, "loo", moment_match=TRUE)
 loo_compare(fit,fit2)
+```
+
+Not sure I am using the moment_match correctly. 
+
+But there is a significant difference, fit2 is better. 
+
+
+## Part 4 
+
+- Reaction times are known to be positively skewed, so lets use log normal instead.  I dont want to refit a million models so i will stick with the varying slopes
+
+```{r}
+
+# priors are now in log space
+
+( priorsRS <- c(
+  prior(
+    normal(log(250), 1),
+    class = "b",
+    coef = "Intercept"
+  ),
+  prior(
+    normal(0, 1),
+    class = "b",
+    coef = "Days"
+  ),
+  prior(
+    normal(0,1),
+    class = sd,
+    group = "Subject",
+    coef = "Intercept"
+
+  ),
+  prior(
+      normal(0,1),
+      class = 'sd',
+      coef = 'Days',
+      group = 'Subject'
+  ),
+  prior(
+    normal(0, 2),
+    class = "sigma"
+  ),
+  prior(
+    lkj(2),
+    class = "cor"
+  )
+
+
+))
+
+modelf <- bf(Reaction ~ Days +  ( 1 + Days | Subject),family = "lognormal", center=FALSE)
+
+fit_lognormal <- brms::brm(modelf,
+                  prior = priorsRS,
+                   data = sleepstudy)
+```
+
+```{r}
+pp_check(fit_lognormal)
+```
+
+ppcheck is better!
+
+
+```{r}
+ 
+fit_lognormal<- add_criterion(fit_lognormal, "loo")
+loo_compare(fit,fit2, fit_lognormal)
+```
+
+
+The lognormal family does even better.
+
+### Spline case
+
+```{r}
+
+
+( priorsSpline <- c(
+  prior(
+    normal(log(250), 1),
+    class = "b",
+    coef = "Intercept"
+  ),
+  prior(
+    normal(0, 1),
+    class = "b",
+    coef = "Days"
+  ),
+  prior(
+    normal(0,1),
+    class = sd,
+    group = "Subject",
+    coef = "Intercept"
+
+  ),
+  prior(
+      normal(0,1),
+      class = 'sd',
+      coef = 'Days',
+      group = 'Subject'
+  ),
+  prior(
+    normal(0, 2),
+    class = "sigma"
+  ),
+  prior(
+    lkj(2),
+    class = "cor"
+  ), 
+  prior(
+    normal(0,1),
+    class = "b",
+    coef = "sDays_1"
+  )
+
+
+))
+modelf <- bf(Reaction ~ Days + s(Days) +  ( 1 + Days | Subject),family = "lognormal", center=FALSE)
+
+fit_spline <- brms::brm(modelf,
+                  prior = priorsSpline,
+                   data = sleepstudy)
+```
+
+
+```{r}
+pp_check(fit_spline)
+```
+
+```{r}
+ 
+fit_spline <- add_criterion(fit_spline, "loo")
+loo_compare(fit,fit2, fit_lognormal, fit_spline)
+```
+
+The spline fit is not significantly better, which makes sense as the spline coefficients are consistent with zero. However, one thing this assignment has taught me is that I dont really know much about GAM models .
+
+```{r}
+fit_spline
+```
+
+```{r}
+pp_check(fit_spline, type = "intervals_grouped", x = "Days", group = "Subject")
 ```
