@@ -1,4 +1,4 @@
-name: nutpie
+name: pymc_bda
 channels:
   - conda-forge
   - defaults
@@ -11,7 +11,7 @@ dependencies:
   - jupyter
   - seaborn
   - statsmodels
-  - numba
-  - bambi
+  - pymc
   - pip
-  - nutpie
+  - pip:
+      - arviz[all]
