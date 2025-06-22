@@ -1,17 +1,17 @@
-name: pymc_bda
+name: pymc_bda3
 channels:
   - conda-forge
   - defaults
 dependencies:
   - python >= 3.11
   - scikit-learn
+  - binutils_win-64<2.43
+  - binutils_impl_win-64<2.43
   - pandas
   - numpy
   - matplotlib
   - jupyter
   - seaborn
-  - statsmodels
   - pymc
+  - statsmodels
   - pip
-  - pip:
-      - arviz[all]
