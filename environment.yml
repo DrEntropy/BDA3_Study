@@ -5,8 +5,6 @@ channels:
 dependencies:
   - python >= 3.11
   - scikit-learn
-  - binutils_win-64<2.43
-  - binutils_impl_win-64<2.43
   - pandas
   - numpy
   - matplotlib
