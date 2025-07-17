@@ -1,0 +1,76 @@
+---
+title: "Lesson11"
+output: html_document
+---
+
+## Variable Selection with Projpred
+
+- This topic is not in BDA3, it is new stuff.  
+
+- New tool to do variable selection
+
+### Introduction
+
+- Model comparison with a few models is straightforward
+- Variable selection is model selection with $2^p$ models, with p parameters!
+  - Likely to overfit (pick a lucky model, not best)
+- BRMS with [projpred](https://mc-stan.org/projpred/) makes this easier and avoids overfit in model selection
+
+- Related to distilling in machine learning. 
+
+- Motivation ? 
+   - Measurment cost in covariates
+   - Running cost of predictive models
+   - Easier explaination 
+   
+- Reference : [Advances in Projective predictive inference](https://arxiv.org/abs/2306.15581)
+
+### Simulated Regression
+
+- Lecture uses a simulated regression to illustrate this
+- Code does not seem to be available.
+- Can you tell from looking at scatter plots / correlations which variables are relevant ?  
+- There is overlap is spread of correlations in the true covariants and the random ones. 
+
+- Illustrates basic idea to use a (reference) model for latent (unobserved) variable using all covariates, and look at correlation between estimated latent and the covariates.  
+
+- For the reference model in the example he uses PCA + linear regression for 3 principle components.
+
+### Generalizing
+
+- This was just for a continuous case
+
+- General approach:
+    - Build rich model , use model checking etc.  This is the reference model
+    - Consider model selection now as decision problem
+    - Replace full posterior $p(\theta | D)$ with some constrained $q(\theta)$ such that the predictive distribution changes as little as possible. 
+    - Example constraints:  
+           - Point mass at some $\theta_0$  (optimal point estimate)
+           - Some covariates have exactly zero regression coefficient (discard covariates)
+           - Different simpler model with easier explanation
+    - Minimize KL Divergence of *predictive distribution* 
+           - SO all covariates inform the result - similar to distillation! 
+           
+### Variable selection
+
+- Goal: Find feature combination with mi minimal projective loss (KL divergence)
+- Search heuristics: Monte Carlo, forward search, L1 penalty (like Lasso)
+- Use cross validation to select appropriate model size 
+    - need to cross-validate over the search paths (i.e. include the search in the 'fit' process)
+   
+### Bodyfat demo
+
+[Model Selection](https://avehtari.github.io/modelselection/bodyfat.html)
+  
+           
+    
+### Vignette 
+
+[Vignette](https://mc-stan.org/projpred/articles/projpred.html)
+or in r : `vignette (topic = "projpred")`
+
+```{r}
+library(projpred)
+data("df_gaussian", package = "projpred")
+dat_gauss <- data.frame(y = df_gaussian$y, df_gaussian$x)
+```
