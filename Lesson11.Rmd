@@ -50,6 +50,8 @@ output: html_document
            - Different simpler model with easier explanation
     - Minimize KL Divergence of *predictive distribution* 
            - SO all covariates inform the result - similar to distillation! 
+
+- THis is 'projection' onto a smaller model, not conditioning on data with smaller model.
            
 ### Variable selection
 
@@ -60,17 +62,95 @@ output: html_document
    
 ### Bodyfat demo
 
-[Model Selection](https://avehtari.github.io/modelselection/bodyfat.html)
-  
-           
-    
-### Vignette 
+Goal here is to figure out which variables are best for measuring body fat. (Siri is body fat determined by siri formualtion)
 
-[Vignette](https://mc-stan.org/projpred/articles/projpred.html)
-or in r : `vignette (topic = "projpred")`
+[Model Selection](https://avehtari.github.io/modelselection/bodyfat.html)
+[Code and Data](https://github.com/avehtari/modelselection)
+
+set up
+```{r}
+library(here)
+library(rstanarm)
+options(mc.cores = parallel::detectCores())
+library(loo)
+library(projpred)
+library(ggplot2)
+library(bayesplot)
+theme_set(bayesplot::theme_default(base_family = "sans"))
+library(corrplot)
+library(knitr)
+SEED=1513306866
+```
+Body fat data:
 
 ```{r}
-library(projpred)
-data("df_gaussian", package = "projpred")
-dat_gauss <- data.frame(y = df_gaussian$y, df_gaussian$x)
+df <- read.table(here("data/case1_bodyfat.txt"), header = T, sep = ";")
+df[,4:19] <- scale(df[,4:19])
+# no-one can have 0% body fat
+df <- df[df$siri>0,]
+y <- df[,"siri"]
+df <- as.data.frame(df)
+n <- nrow(df)
+# predictive and target variables 
+pred <- c("age", "weight", "height", "neck", "chest", "abdomen", "hip", 
+          "thigh", "knee", "ankle", "biceps", "forearm", "wrist")
+target <- "siri"
+formula <- formula(paste("siri ~", paste(pred, collapse = " + ")))
+p <- length(pred)
+
+corrplot(cor(df[, c(target,pred)]))
 ```
+
+Reference model :
+
+Note this uses a horseshoe prior (which i never relized was as easy as that!). Note that AFAIK this horseshoe prior was not covered in the lectures. 
+
+```{r}
+p0 <- 5 # prior guess for the number of relevant variables
+tau0 <- p0/(p-p0) * 1/sqrt(n)
+rhs_prior <- hs(global_scale=tau0)
+fitrhs <- stan_glm(formula, data = df, prior=rhs_prior, QR=TRUE, 
+                   seed=SEED, refresh=0)
+summary(fitrhs)
+```
+
+```{r}
+yrep <- posterior_predict(fitrhs, draws = 50)
+ppc_dens_overlay(y, yrep)
+```
+
+Staring at coefficients, it is clear that abdomen is important but not what else should be included. Further, recall from lecture 9 that this can be misleading: marginal posterior for weight seems to include 0, but when combined with height the bivariate marginal doesn't overlap zero. 
+
+Use the `cv_varsel` from projpred which automates the variable selection and uses cross validation.  (see documentation) . This takes a bit to run (30-60 minutes?) with validate_search= TRUE so i do it here in the not recommended way :)  
+```{r}
+fitrhs_cvvs <- cv_varsel(fitrhs, method = 'forward', cv_method = 'loo',
+                         validate_search= FALSE, verbose = 1)
+plot(fitrhs_cvvs, stats = c('elpd', 'rmse'), deltas=FALSE)
+```
+
+The predictive performance matches that of the full model with only a few variables.
+
+```{r}
+(nsel <- suggest_size(fitrhs_cvvs, alpha=0.1))
+(vsel <- solution_terms(fitrhs_cvvs)[1:nsel])
+```
+
+Note that the next step is NOT to refit a smaller model. Instead we form the projected model:
+
+```{r}
+projrhs <- project(fitrhs_cvvs, nterms = nsel, ndraws = 4000)
+mcmc_areas(as.matrix(projrhs), pars = vsel)
+```
+
+Note that the marginals are quite different. I will skip the rest of the notebook which focuses on stability of projpred vs other methods.  
+
+### other thoughts
+
+-  Don't re-run brms on the submodel. Remember out of sample performance is important, and teh reference model should have been chosen for good out of sample performance.  The reference model is still the 'best' model, we are just trying to find a smaller model that matches it.
+
+From [Advances in Projective predictive inference](https://arxiv.org/abs/2306.15581) 
+>In a word, should a reference model pass checks and were it not for the need for model selection, we would be happy to use it as-is.
+
+- If the reference model did over fit somewhat (which bayesian models are robust against anyway do to looking at full posterior) , cv_varsel helps here because it evaluates the submodels using cross validation.
+
+
